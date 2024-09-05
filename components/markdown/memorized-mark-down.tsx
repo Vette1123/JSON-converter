@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
@@ -28,10 +28,17 @@ function stringifyObject(obj: any): any {
 
 export function MemorizedMarkDown() {
   const { messages: input } = useMessage()
-  console.log('input', input)
 
-  const parsedInput =
-    input?.length && input.filter(Boolean) ? eval('(' + input + ')') : ''
+  const errors: string[] = []
+  let parsedInput: any = ''
+
+  try {
+    parsedInput =
+      input?.length && input.filter(Boolean) ? eval('(' + input + ')') : ''
+  } catch (error) {
+    errors.push('Invalid JSON input')
+  }
+
   const formattedArray = stringifyObject(parsedInput)
   const formattedContent = parsedInput.length
     ? '```json\n' + JSON.stringify(formattedArray, null, 2) + '\n```'
@@ -57,6 +64,20 @@ export function MemorizedMarkDown() {
 
   return (
     <div className="mx-auto w-full max-w-3xl p-4 pb-72">
+      {errors?.length > 0 && (
+        <div className="text-red-500">
+          {errors.map((error, index) => (
+            <p className="text-center text-red-500" key={index}>
+              {error}
+            </p>
+          ))}
+        </div>
+      )}
+      {!formattedContent && !errors?.length && (
+        <p className="text-center text-muted-foreground">
+          Please enter a prompt to generate a response.
+        </p>
+      )}
       <MemoizedReactMarkdown
         className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 max-w-3xl break-words"
         remarkPlugins={[remarkGfm, remarkMath] as any}
