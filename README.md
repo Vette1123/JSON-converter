@@ -1,38 +1,55 @@
 # JSON Converter
 
-> **Status: work in progress.** The editor and live preview work. The
-> conversion step is not wired up yet — see [Current state](#current-state)
-> before you judge it as a finished tool.
-
-A prompt-style workspace for pasting a JavaScript array or object and seeing it
-rendered back, formatted and syntax highlighted, as you type.
+Paste a JavaScript object or array and get it back as formatted,
+syntax-highlighted JSON — live, as you type. No build step in the loop, no
+request, nothing leaves the browser.
 
 **[Live →](https://json-converter-nine.vercel.app)**
 
-## Current state
+## What it handles
 
-Being precise about this, because the repository name promises more than the
-code currently does:
+Strict JSON works, and so does the thing you actually have on your clipboard —
+a JavaScript literal copied out of a source file:
 
-| Part | State |
-| --- | --- |
-| Chat-style input, autosizing textarea | working |
-| Live markdown + code rendering of the input | working |
-| Syntax highlighting, GFM, math | working |
-| Light/dark theme, responsive shell | working |
-| **Submit handler** | **not implemented** — `onSubmit` is stubbed out |
-| **Array/object → JSON conversion** | **not implemented** |
+```js
+{ name: 'ada', ids: [1, 2, 3,], active: true }
+```
 
-What happens today: `onChange` pushes the raw textarea value into a Zustand
-store, and `MemorizedMarkDown` re-renders it. That makes it a live markdown and
-code previewer with a chat-shaped input. The conversion the name refers to has
-not been written.
+Unquoted keys, single quotes and trailing commas all convert. Output is
+pretty-printed at two-space indentation with a copy button and a download
+button on the code block.
+
+## How the parsing works
+
+Strict JSON is tried first, and covers most input without executing anything:
+
+```ts
+function parseSource(source: string): unknown {
+  try {
+    return JSON.parse(source)
+  } catch {
+    return Function(`"use strict"; return (${source});`)()
+  }
+}
+```
+
+Only when `JSON.parse` fails does it fall back to evaluating the text as a
+JavaScript expression — which is what makes unquoted keys and trailing commas
+work at all, and the reason to paste here rather than into a plain JSON
+formatter.
+
+`Function` rather than `eval` is deliberate: a direct `eval` can read and write
+the surrounding local scope, while a function body sees only globals. It is
+still evaluation, so the honest boundary is this — everything runs client-side
+on text you typed yourself, and nothing is persisted, shared, or sent anywhere.
+Do not extend it to parse input arriving from a URL or another user without
+swapping in a real parser such as JSON5 first.
 
 ## Stack
 
 | | |
 | --- | --- |
-| Framework | Next.js (App Router) |
+| Framework | Next.js 14 (App Router) |
 | Language | TypeScript |
 | State | Zustand |
 | Rendering | `react-markdown` + `remark-gfm` + `remark-math` |
@@ -41,32 +58,20 @@ not been written.
 | Input | `react-textarea-autosize` |
 | Themes | `next-themes` |
 
-## How it is put together
+## Layout
 
 ```
 app/page.tsx                          # MemorizedMarkDown + ChatPanel
-components/chat/chat-panel.tsx        # fixed bottom dock
-components/chat/chat-prompt-form.tsx  # textarea, Enter-to-submit, send button
-components/markdown/                  # memoised renderer
+components/chat/chat-panel.tsx        # docked input at the bottom
+components/chat/chat-prompt-form.tsx  # the textarea
+components/markdown/                  # parse, format, render, highlight
 hooks/use-message.ts                  # Zustand store holding the input
-hooks/use-enter-submit.ts             # Enter submits, Shift+Enter newlines
 ```
 
-The renderer is memoised on purpose. It re-runs on every keystroke, and
-`react-syntax-highlighter` tokenises the whole block each time — without
-`memo`, typing into a large paste visibly stutters.
-
-## Finishing it
-
-The remaining work is one function and a call site:
-
-1. Implement the parse in `chat-prompt-form.tsx`'s `onSubmit` (currently
-   commented out) — take the raw input, evaluate or parse it into a value,
-   `JSON.stringify` with indentation.
-2. Store the result alongside the input rather than overwriting it, so the pane
-   can show source and output side by side.
-3. Render errors in place. A malformed object should say where it broke, not
-   silently render nothing.
+The renderer is memoised on purpose. It re-runs on every keystroke and
+`react-syntax-highlighter` re-tokenises the whole block each time, so without
+`memo` typing into a large paste visibly stutters. "It re-renders" and "it is
+slow" are different problems, and only the second one is fixed by memoising.
 
 ## Running locally
 
@@ -77,15 +82,14 @@ bun install     # or npm install
 bun dev         # or npm run dev
 ```
 
-Open `http://localhost:3000`. No environment variables or API keys required —
-everything runs client-side.
+Open `http://localhost:3000`. No environment variables or API keys required.
 
 ## Notes
 
 Scaffolded from [Sadge Template](https://github.com/Vette1123/next-js-starter-template),
-which is why `package.json` still carries the template's name. The chat shell
-borrows its layout from the Vercel AI chatbot example, but there is no AI and
-no API route here — nothing leaves the browser.
+which is why `package.json` still carries the template's name. The input dock
+borrows its layout from the Vercel AI chatbot example — there is no AI and no
+API route here.
 
 ---
 
