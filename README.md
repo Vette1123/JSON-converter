@@ -1,15 +1,14 @@
 # JSON Converter
 
 Paste a JavaScript object or array and get it back as formatted,
-syntax-highlighted JSON — live, as you type. No build step in the loop, no
-request, nothing leaves the browser.
+syntax-highlighted JSON, live, as you type. There is no build step and no
+request, and nothing leaves the browser.
 
 **[Live →](https://json-converter-nine.vercel.app)**
 
 ## What it handles
 
-Strict JSON works, and so does the thing you actually have on your clipboard —
-a JavaScript literal copied out of a source file:
+Strict JSON works. So does a JavaScript literal copied out of a source file:
 
 ```js
 { name: 'ada', ids: [1, 2, 3,], active: true }
@@ -21,7 +20,7 @@ button on the code block.
 
 ## How the parsing works
 
-Strict JSON is tried first, and covers most input without executing anything:
+Strict JSON is tried first. It covers most input without executing anything:
 
 ```ts
 function parseSource(source: string): unknown {
@@ -34,13 +33,13 @@ function parseSource(source: string): unknown {
 ```
 
 Only when `JSON.parse` fails does it fall back to evaluating the text as a
-JavaScript expression — which is what makes unquoted keys and trailing commas
-work at all, and the reason to paste here rather than into a plain JSON
+JavaScript expression. That fallback is what makes unquoted keys and trailing
+commas work, and it is the reason to paste here instead of into a plain JSON
 formatter.
 
-`Function` rather than `eval` is deliberate: a direct `eval` can read and write
+I use `Function` instead of `eval` on purpose: a direct `eval` can read and write
 the surrounding local scope, while a function body sees only globals. It is
-still evaluation, so the honest boundary is this — everything runs client-side
+still evaluation, so the limit is this: everything runs client-side
 on text you typed yourself, and nothing is persisted, shared, or sent anywhere.
 Do not extend it to parse input arriving from a URL or another user without
 swapping in a real parser such as JSON5 first.
@@ -70,8 +69,7 @@ hooks/use-message.ts                  # Zustand store holding the input
 
 The renderer is memoised on purpose. It re-runs on every keystroke and
 `react-syntax-highlighter` re-tokenises the whole block each time, so without
-`memo` typing into a large paste visibly stutters. "It re-renders" and "it is
-slow" are different problems, and only the second one is fixed by memoising.
+`memo` typing into a large paste visibly stutters.
 
 ## Running locally
 
@@ -88,7 +86,7 @@ Open `http://localhost:3000`. No environment variables or API keys required.
 
 Scaffolded from [Sadge Template](https://github.com/Vette1123/next-js-starter-template),
 which is why `package.json` still carries the template's name. The input dock
-borrows its layout from the Vercel AI chatbot example — there is no AI and no
+borrows its layout from the Vercel AI chatbot example, but there is no AI and no
 API route here.
 
 ---
