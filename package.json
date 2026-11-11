@@ -2,6 +2,9 @@
   "name": "next-js-starter-template",
   "version": "1.1.2",
   "private": true,
+  "engines": {
+    "node": "26.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -48,6 +51,5 @@
     "prettier-plugin-tailwindcss": "^0.6.6",
     "tailwindcss": "^3.4.10",
     "typescript": "^5.5.4"
-  },
-  "packageManager": "pnpm@8.7.5"
+  }
 }
